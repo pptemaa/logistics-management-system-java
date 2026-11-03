@@ -1,12 +1,12 @@
-package ru.pptemaa.logistics;
+package ru.pptemaa.logistics.warehouse;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class LogisticsManagementApplication {
+public class WarehouseServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(LogisticsManagementApplication.class, args);
+        SpringApplication.run(WarehouseServiceApplication.class, args);
     }
 }
