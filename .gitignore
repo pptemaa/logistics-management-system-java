@@ -1,0 +1,10 @@
+# Java and Maven build output
+target/
+*.class
+
+# IDE and local settings
+.idea/
+*.iml
+.vscode/
+.env
+*.log
