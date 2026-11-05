@@ -4,12 +4,15 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,13 +30,27 @@ public class DriverController {
     }
 
     @GetMapping
-    public List<Driver> list() {
-        return drivers.findAll();
+    public List<Driver> list(@RequestParam(required = false) String status) {
+        if (status == null) {
+            return drivers.findAll(null);
+        }
+        try {
+            return drivers.findAll(DriverStatus.fromJson(status));
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown driver status");
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Driver> get(@PathVariable long id) {
         return drivers.findById(id).map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Driver> updateStatus(@PathVariable long id,
+            @Valid @RequestBody UpdateDriverStatusRequest request) {
+        return drivers.updateStatus(id, request.status()).map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 

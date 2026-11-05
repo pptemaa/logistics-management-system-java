@@ -13,7 +13,8 @@ import org.springframework.stereotype.Repository;
 public class DriverRepository {
     private static final RowMapper<Driver> MAPPER = (rs, rowNum) -> new Driver(
             rs.getLong("id"), rs.getString("name"), rs.getString("phone"),
-            rs.getString("license_number"), rs.getString("car"), rs.getString("status"));
+            rs.getString("license_number"), rs.getString("car"),
+            DriverStatus.fromJson(rs.getString("status")));
     private final JdbcTemplate jdbc;
 
     public DriverRepository(JdbcTemplate jdbc) {
@@ -39,12 +40,22 @@ public class DriverRepository {
         return findById(keys.getKey().longValue()).orElseThrow();
     }
 
-    public List<Driver> findAll() {
-        return jdbc.query("SELECT * FROM drivers ORDER BY id", MAPPER);
+    public List<Driver> findAll(DriverStatus status) {
+        if (status == null) {
+            return jdbc.query("SELECT * FROM drivers ORDER BY id", MAPPER);
+        }
+        return jdbc.query("SELECT * FROM drivers WHERE status = ? ORDER BY id",
+                MAPPER, status.value());
     }
 
     public Optional<Driver> findById(long id) {
         return jdbc.query("SELECT * FROM drivers WHERE id = ?", MAPPER, id)
                 .stream().findFirst();
+    }
+
+    public Optional<Driver> updateStatus(long id, DriverStatus status) {
+        int changed = jdbc.update("UPDATE drivers SET status = ? WHERE id = ?",
+                status.value(), id);
+        return changed == 0 ? Optional.empty() : findById(id);
     }
 }
