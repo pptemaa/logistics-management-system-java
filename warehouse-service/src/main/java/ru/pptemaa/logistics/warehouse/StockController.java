@@ -37,6 +37,27 @@ public class StockController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<StockItem> reserve(@PathVariable long id,
+            @Valid @RequestBody ChangeQuantityRequest request) {
+        if (stock.reserve(id, request.quantity())) {
+            return ResponseEntity.ok(stock.findById(id).orElseThrow());
+        }
+        if (stock.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    @PostMapping("/{id}/replenish")
+    public ResponseEntity<StockItem> replenish(@PathVariable long id,
+            @Valid @RequestBody ChangeQuantityRequest request) {
+        if (!stock.replenish(id, request.quantity())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(stock.findById(id).orElseThrow());
+    }
+
     @ExceptionHandler(DuplicateProductException.class)
     public ResponseEntity<String> duplicateProduct() {
         return ResponseEntity.status(HttpStatus.CONFLICT).body("Product already registered");

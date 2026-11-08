@@ -46,4 +46,18 @@ public class StockRepository {
         return jdbc.query("SELECT * FROM warehouse_stock WHERE product_id = ?", MAPPER, id)
                 .stream().findFirst();
     }
+
+    public boolean reserve(long id, int quantity) {
+        return jdbc.update(
+                "UPDATE warehouse_stock SET quantity = quantity - ?, last_updated = CURRENT_TIMESTAMP "
+                        + "WHERE product_id = ? AND quantity >= ?",
+                quantity, id, quantity) == 1;
+    }
+
+    public boolean replenish(long id, int quantity) {
+        return jdbc.update(
+                "UPDATE warehouse_stock SET quantity = quantity + ?, last_updated = CURRENT_TIMESTAMP "
+                        + "WHERE product_id = ?",
+                quantity, id) == 1;
+    }
 }
