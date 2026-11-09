@@ -41,7 +41,7 @@ public class OrderRepository {
     public Optional<Order> findById(long id) {
         List<Order> orders = jdbc.query("SELECT * FROM orders WHERE id = ?",
                 (rs, rowNum) -> new Order(rs.getLong("id"), rs.getLong("user_id"),
-                        rs.getString("status"), rs.getString("delivery_address"),
+                        OrderStatus.fromJson(rs.getString("status")), rs.getString("delivery_address"),
                         rs.getBigDecimal("total_amount"), (Long) rs.getObject("driver_id"),
                         rs.getTimestamp("created_at").toInstant(), List.of()), id);
         if (orders.isEmpty()) {
@@ -56,5 +56,15 @@ public class OrderRepository {
         return Optional.of(new Order(order.id(), order.userId(), order.status(),
                 order.deliveryAddress(), order.totalAmount(), order.driverId(),
                 order.createdAt(), items));
+    }
+
+    public boolean updateStatus(long id, OrderStatus current, OrderStatus next, Long driverId) {
+        if (next == OrderStatus.ASSIGNED) {
+            return jdbc.update("UPDATE orders SET status = ?, driver_id = ? "
+                            + "WHERE id = ? AND status = ?",
+                    next.value(), driverId, id, current.value()) == 1;
+        }
+        return jdbc.update("UPDATE orders SET status = ? WHERE id = ? AND status = ?",
+                next.value(), id, current.value()) == 1;
     }
 }

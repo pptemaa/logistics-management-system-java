@@ -2,6 +2,7 @@ package ru.pptemaa.logistics.order;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,5 +53,37 @@ class OrderControllerTest {
                                 """))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/orders/99999")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void followsDeliveryLifecycleAndRejectsSkippedSteps() throws Exception {
+        String created = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"userId":8,"deliveryAddress":"Moscow, Tverskaya 1","items":[
+                                  {"productId":12,"productName":"Phone","unitPrice":50.00,"quantity":1}
+                                ]}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long id = json.readTree(created).get("id").asLong();
+
+        changeStatus(id, "{\"status\":\"delivered\"}").andExpect(status().isConflict());
+        changeStatus(id, "{\"status\":\"confirmed\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("confirmed"));
+        changeStatus(id, "{\"status\":\"route_ready\"}").andExpect(status().isOk());
+        changeStatus(id, "{\"status\":\"assigned\"}").andExpect(status().isConflict());
+        changeStatus(id, "{\"status\":\"assigned\",\"driverId\":42}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.driverId").value(42));
+        changeStatus(id, "{\"status\":\"in_progress\"}").andExpect(status().isOk());
+        changeStatus(id, "{\"status\":\"delivered\"}")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("delivered"));
+        changeStatus(id, "{\"status\":\"cancelled\"}").andExpect(status().isConflict());
+        changeStatus(99999, "{\"status\":\"confirmed\"}").andExpect(status().isNotFound());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions changeStatus(long id, String body)
+            throws Exception {
+        return mvc.perform(patch("/api/orders/{id}/status", id)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 }

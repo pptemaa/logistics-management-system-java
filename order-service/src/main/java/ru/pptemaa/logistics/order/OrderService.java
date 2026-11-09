@@ -26,4 +26,20 @@ public class OrderService {
         items.forEach(item -> orders.insertItem(id, item));
         return orders.findById(id).orElseThrow();
     }
+
+    @Transactional
+    public Order changeStatus(long id, UpdateOrderStatusRequest request) {
+        Order current = orders.findById(id).orElse(null);
+        if (current == null) {
+            return null;
+        }
+        if (!current.status().canTransitionTo(request.status())
+                || (request.status() == OrderStatus.ASSIGNED) != (request.driverId() != null)) {
+            throw new InvalidOrderTransitionException();
+        }
+        if (!orders.updateStatus(id, current.status(), request.status(), request.driverId())) {
+            throw new InvalidOrderTransitionException();
+        }
+        return orders.findById(id).orElseThrow();
+    }
 }
