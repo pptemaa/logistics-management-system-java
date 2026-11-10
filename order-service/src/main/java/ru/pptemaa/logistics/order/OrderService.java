@@ -2,23 +2,36 @@ package ru.pptemaa.logistics.order;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import ru.pptemaa.logistics.contracts.warehouse.ProductInfo;
 
 @Service
 public class OrderService {
     private final OrderRepository orders;
+    private final WarehouseCatalogClient warehouse;
 
-    public OrderService(OrderRepository orders) {
+    public OrderService(OrderRepository orders, WarehouseCatalogClient warehouse) {
         this.orders = orders;
+        this.warehouse = warehouse;
     }
 
     @Transactional
     public Order create(CreateOrderRequest request) {
         List<Order.Item> items = request.items().stream()
-                .map(item -> new Order.Item(item.productId(), item.productName().trim(),
-                        item.unitPrice(), item.quantity(),
-                        item.unitPrice().multiply(BigDecimal.valueOf(item.quantity()))))
+                .map(item -> {
+                    ProductInfo product = warehouse.getProduct(item.productId());
+                    if (product.getAvailableQuantity() < item.quantity()) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Insufficient stock");
+                    }
+                    BigDecimal price = BigDecimal.valueOf(product.getPriceCents(), 2);
+                    return new Order.Item(item.productId(), product.getProductName(),
+                            price, item.quantity(),
+                            price.multiply(BigDecimal.valueOf(item.quantity())));
+                })
                 .toList();
         BigDecimal total = items.stream().map(Order.Item::lineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

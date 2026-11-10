@@ -121,8 +121,8 @@ docker compose -f compose.order.yaml up -d
 mvn -pl order-service spring-boot:run
 ```
 
-`POST http://localhost:8082/api/orders` принимает `userId`, `deliveryAddress` и непустой список `items`. У каждой позиции нужны `productId`, `productName`, `unitPrice` и `quantity`. Сервис рассчитывает `lineTotal` и `totalAmount`, сохраняет заказ со статусом `pending` и возвращает `201 Created`. Заказ можно получить по `GET /api/orders/{id}`.
+`POST http://localhost:8082/api/orders` принимает `userId`, `deliveryAddress` и непустой список `items`. У каждой позиции нужны `productId` и `quantity`. Сервис рассчитывает `lineTotal` и `totalAmount`, сохраняет заказ со статусом `pending` и возвращает `201 Created`. Заказ можно получить по `GET /api/orders/{id}`.
 
-На этом этапе цена и ID пользователя приходят в запросе. Проверка цены через склад и получение пользователя из токена будут добавлены при соединении сервисов. Для другого подключения к базе задайте `ORDER_DB_URL`, `ORDER_DB_USER` и `ORDER_DB_PASSWORD`.
+Сервис заказов получает название, цену и доступное количество товара из Warehouse Service по gRPC на порту `9094`. При нехватке товара ответ будет `409 Conflict`. Перед запуском сервисов соберите общий контракт командой `mvn -pl contracts install -DskipTests`, затем запустите Warehouse Service вместе с Order Service. Адрес gRPC задаётся через `WAREHOUSE_GRPC_HOST` и `WAREHOUSE_GRPC_PORT`. ID пользователя пока приходит в запросе; получение его из токена добавим позже. Для другого подключения к базе задайте `ORDER_DB_URL`, `ORDER_DB_USER` и `ORDER_DB_PASSWORD`.
 
 `PATCH /api/orders/{id}/status` с JSON `{"status":"confirmed"}` переводит заказ на следующий этап. Порядок основного сценария: `pending → confirmed → route_ready → assigned → in_progress → delivered`. Для `assigned` передайте `driverId`, например `{"status":"assigned","driverId":42}`. Заказ можно отменить до начала доставки. Пропуск этапа или изменение завершённого заказа возвращает `409 Conflict`. ID водителя пока сохраняется без проверки в Driver Service; межсервисная проверка появится позже.

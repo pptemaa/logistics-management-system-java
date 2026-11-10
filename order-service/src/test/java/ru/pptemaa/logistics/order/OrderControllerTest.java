@@ -5,15 +5,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import ru.pptemaa.logistics.contracts.warehouse.ProductInfo;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -21,14 +25,27 @@ import org.springframework.test.web.servlet.MockMvc;
 class OrderControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @MockitoBean WarehouseCatalogClient warehouse;
+
+    @BeforeEach
+    void setUp() {
+        when(warehouse.getProduct(10)).thenReturn(product(10, "Laptop", 10050, 10));
+        when(warehouse.getProduct(11)).thenReturn(product(11, "Mouse", 2000, 10));
+        when(warehouse.getProduct(12)).thenReturn(product(12, "Phone", 5000, 10));
+    }
+
+    private ProductInfo product(long id, String name, long cents, int quantity) {
+        return ProductInfo.newBuilder().setProductId(id).setProductName(name)
+                .setPriceCents(cents).setAvailableQuantity(quantity).build();
+    }
 
     @Test
     void createsOrderAndCalculatesTotal() throws Exception {
         String created = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"userId":7,"deliveryAddress":"Moscow, Lenina 1","items":[
-                                  {"productId":10,"productName":"Laptop","unitPrice":100.50,"quantity":2},
-                                  {"productId":11,"productName":"Mouse","unitPrice":20.00,"quantity":3}
+                                  {"productId":10,"quantity":2},
+                                  {"productId":11,"quantity":3}
                                 ]}
                                 """))
                 .andExpect(status().isCreated())
@@ -48,7 +65,7 @@ class OrderControllerTest {
         mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"userId":0,"deliveryAddress":"","items":[
-                                  {"productId":1,"productName":"Item","unitPrice":-2,"quantity":0}
+                                  {"productId":1,"quantity":0}
                                 ]}
                                 """))
                 .andExpect(status().isBadRequest());
@@ -56,11 +73,22 @@ class OrderControllerTest {
     }
 
     @Test
+    void rejectsOrderWhenWarehouseHasInsufficientStock() throws Exception {
+        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"userId":7,"deliveryAddress":"Moscow, Lenina 1","items":[
+                                  {"productId":10,"quantity":11}
+                                ]}
+                                """))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void followsDeliveryLifecycleAndRejectsSkippedSteps() throws Exception {
         String created = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"userId":8,"deliveryAddress":"Moscow, Tverskaya 1","items":[
-                                  {"productId":12,"productName":"Phone","unitPrice":50.00,"quantity":1}
+                                  {"productId":12,"quantity":1}
                                 ]}
                                 """))
                 .andExpect(status().isCreated())

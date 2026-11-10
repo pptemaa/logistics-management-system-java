@@ -19,6 +19,7 @@
     <description>Система управления логистикой</description>
 
     <modules>
+        <module>contracts</module>
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>order-service</module>
@@ -28,6 +29,8 @@
 
     <properties>
         <java.version>21</java.version>
+        <grpc.version>1.85.1</grpc.version>
+        <protobuf.version>3.25.8</protobuf.version>
     </properties>
 
 </project>

@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package logistics.warehouse;
+option java_multiple_files = true;
+option java_package = "ru.pptemaa.logistics.contracts.warehouse";
+
+service WarehouseCatalog {
+  rpc GetProduct(GetProductRequest) returns (ProductInfo);
+}
+
+message GetProductRequest {
+  int64 product_id = 1;
+}
+
+message ProductInfo {
+  int64 product_id = 1;
+  string product_name = 2;
+  int32 available_quantity = 3;
+  int64 price_cents = 4;
+}
