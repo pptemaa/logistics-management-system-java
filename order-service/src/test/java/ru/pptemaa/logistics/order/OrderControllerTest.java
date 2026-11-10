@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import ru.pptemaa.logistics.contracts.driver.DriverInfo;
 import ru.pptemaa.logistics.contracts.warehouse.ProductInfo;
 
 @SpringBootTest
@@ -26,12 +27,17 @@ class OrderControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @MockitoBean WarehouseCatalogClient warehouse;
+    @MockitoBean DriverDirectoryClient drivers;
 
     @BeforeEach
     void setUp() {
         when(warehouse.getProduct(10)).thenReturn(product(10, "Laptop", 10050, 10));
         when(warehouse.getProduct(11)).thenReturn(product(11, "Mouse", 2000, 10));
         when(warehouse.getProduct(12)).thenReturn(product(12, "Phone", 5000, 10));
+        when(drivers.getDriver(42)).thenReturn(DriverInfo.newBuilder()
+                .setDriverId(42).setStatus("available").build());
+        when(drivers.getDriver(43)).thenReturn(DriverInfo.newBuilder()
+                .setDriverId(43).setStatus("busy").build());
     }
 
     private ProductInfo product(long id, String name, long cents, int quantity) {
@@ -100,6 +106,8 @@ class OrderControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("confirmed"));
         changeStatus(id, "{\"status\":\"route_ready\"}").andExpect(status().isOk());
         changeStatus(id, "{\"status\":\"assigned\"}").andExpect(status().isConflict());
+        changeStatus(id, "{\"status\":\"assigned\",\"driverId\":43}")
+                .andExpect(status().isConflict());
         changeStatus(id, "{\"status\":\"assigned\",\"driverId\":42}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.driverId").value(42));
         changeStatus(id, "{\"status\":\"in_progress\"}").andExpect(status().isOk());

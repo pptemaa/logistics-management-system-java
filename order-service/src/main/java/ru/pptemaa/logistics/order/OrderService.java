@@ -12,10 +12,13 @@ import ru.pptemaa.logistics.contracts.warehouse.ProductInfo;
 public class OrderService {
     private final OrderRepository orders;
     private final WarehouseCatalogClient warehouse;
+    private final DriverDirectoryClient drivers;
 
-    public OrderService(OrderRepository orders, WarehouseCatalogClient warehouse) {
+    public OrderService(OrderRepository orders, WarehouseCatalogClient warehouse,
+            DriverDirectoryClient drivers) {
         this.orders = orders;
         this.warehouse = warehouse;
+        this.drivers = drivers;
     }
 
     @Transactional
@@ -49,6 +52,10 @@ public class OrderService {
         if (!current.status().canTransitionTo(request.status())
                 || (request.status() == OrderStatus.ASSIGNED) != (request.driverId() != null)) {
             throw new InvalidOrderTransitionException();
+        }
+        if (request.status() == OrderStatus.ASSIGNED
+                && !"available".equals(drivers.getDriver(request.driverId()).getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Driver is not available");
         }
         if (!orders.updateStatus(id, current.status(), request.status(), request.driverId())) {
             throw new InvalidOrderTransitionException();

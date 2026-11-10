@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package logistics.driver;
+option java_multiple_files = true;
+option java_package = "ru.pptemaa.logistics.contracts.driver";
+
+service DriverDirectory {
+  rpc GetDriver(GetDriverRequest) returns (DriverInfo);
+}
+
+message GetDriverRequest {
+  int64 driver_id = 1;
+}
+
+message DriverInfo {
+  int64 driver_id = 1;
+  string status = 2;
+}
