@@ -127,6 +127,11 @@ services:
       context: .
       args:
         MODULE: api-gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      ORDER_SERVICE_URL: http://order-service:8082
+      DRIVER_SERVICE_URL: http://driver-service:8083
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:8084
     ports:
       - "8080:8080"
     depends_on:
