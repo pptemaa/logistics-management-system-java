@@ -1,0 +1,7 @@
+**/target
+.git
+.idea
+.vscode
+*.log
+compose.*.yaml
+README.md

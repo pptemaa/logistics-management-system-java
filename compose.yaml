@@ -1,0 +1,142 @@
+services:
+  auth-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: logistics_auth
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_dev
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics_auth"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: logistics_orders
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_dev
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics_orders"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  driver-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: logistics_drivers
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_dev
+    volumes:
+      - driver-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics_drivers"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  warehouse-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: logistics_warehouse
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics_dev
+    volumes:
+      - warehouse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logistics -d logistics_warehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth-service:
+    build:
+      context: .
+      args:
+        MODULE: auth-service
+    environment:
+      DB_URL: jdbc:postgresql://auth-db:5432/logistics_auth
+      DB_USER: logistics
+      DB_PASSWORD: logistics_dev
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-before-release}
+    ports:
+      - "8081:8081"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  driver-service:
+    build:
+      context: .
+      args:
+        MODULE: driver-service
+    environment:
+      DRIVER_DB_URL: jdbc:postgresql://driver-db:5432/logistics_drivers
+      DRIVER_DB_USER: logistics
+      DRIVER_DB_PASSWORD: logistics_dev
+    ports:
+      - "8083:8083"
+    depends_on:
+      driver-db:
+        condition: service_healthy
+
+  warehouse-service:
+    build:
+      context: .
+      args:
+        MODULE: warehouse-service
+    environment:
+      WAREHOUSE_DB_URL: jdbc:postgresql://warehouse-db:5432/logistics_warehouse
+      WAREHOUSE_DB_USER: logistics
+      WAREHOUSE_DB_PASSWORD: logistics_dev
+    ports:
+      - "8084:8084"
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: .
+      args:
+        MODULE: order-service
+    environment:
+      ORDER_DB_URL: jdbc:postgresql://order-db:5432/logistics_orders
+      ORDER_DB_USER: logistics
+      ORDER_DB_PASSWORD: logistics_dev
+      WAREHOUSE_GRPC_HOST: warehouse-service
+      DRIVER_GRPC_HOST: driver-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_started
+      driver-service:
+        condition: service_started
+
+  api-gateway:
+    build:
+      context: .
+      args:
+        MODULE: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - order-service
+      - driver-service
+      - warehouse-service
+
+volumes:
+  auth-db-data:
+  order-db-data:
+  driver-db-data:
+  warehouse-db-data:
