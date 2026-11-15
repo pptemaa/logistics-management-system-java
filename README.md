@@ -51,9 +51,9 @@
 docker compose up --build -d
 ```
 
-API Gateway принимает запросы на порту `8080` и направляет пути `/api/auth/**`, `/api/orders/**`, `/api/drivers/**` и `/api/stock/**` в соответствующие сервисы. REST API сервисов также доступны напрямую на портах `8081`, `8082`, `8083` и `8084`. При отдельном запуске адреса сервисов для Gateway задаются через `AUTH_SERVICE_URL`, `ORDER_SERVICE_URL`, `DRIVER_SERVICE_URL` и `WAREHOUSE_SERVICE_URL`. Для локального запуска используется тестовый JWT-секрет; перед использованием вне локального окружения задайте `JWT_SECRET`. Остановить контейнеры можно командой `docker compose down`.
+API Gateway принимает запросы на порту `8080` и направляет пути `/api/auth/**`, `/api/orders/**`, `/api/drivers/**` и `/api/stock/**` в соответствующие сервисы. Регистрация и вход открыты без токена. Для запросов к заказам, водителям и складу через Gateway передайте `Authorization: Bearer <accessToken>`; Gateway проверяет подпись, срок действия и издателя JWT. При запуске через Docker Compose наружу открыт только Gateway; прямые HTTP-порты сервисов доступны внутри сети Compose. При отдельном запуске адреса сервисов для Gateway задаются через `AUTH_SERVICE_URL`, `ORDER_SERVICE_URL`, `DRIVER_SERVICE_URL` и `WAREHOUSE_SERVICE_URL`. Для локального запуска используется тестовый JWT-секрет; перед использованием вне локального окружения задайте `JWT_SECRET`. Остановить контейнеры можно командой `docker compose down`.
 
-Для запуска без Docker нужны JDK 21 и Maven 3.9 или новее. Из корня репозитория соберите все сервисы:
+Для запуска без Docker нужны JDK 21 и Maven 3.9 или новее. Задайте одинаковый `JWT_SECRET` длиной не менее 32 байт для Auth Service и API Gateway. Из корня репозитория соберите все сервисы:
 
 ```bash
 mvn package

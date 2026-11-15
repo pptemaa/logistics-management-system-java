@@ -7,6 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ public class GatewayController {
     private final String driverUrl;
     private final String warehouseUrl;
 
+    @Autowired
     public GatewayController(@Value("${gateway.auth.url}") String authUrl,
             @Value("${gateway.order.url}") String orderUrl,
             @Value("${gateway.driver.url}") String driverUrl,

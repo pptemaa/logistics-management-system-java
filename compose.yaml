@@ -65,8 +65,6 @@ services:
       DB_USER: logistics
       DB_PASSWORD: logistics_dev
       JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-before-release}
-    ports:
-      - "8081:8081"
     depends_on:
       auth-db:
         condition: service_healthy
@@ -80,8 +78,6 @@ services:
       DRIVER_DB_URL: jdbc:postgresql://driver-db:5432/logistics_drivers
       DRIVER_DB_USER: logistics
       DRIVER_DB_PASSWORD: logistics_dev
-    ports:
-      - "8083:8083"
     depends_on:
       driver-db:
         condition: service_healthy
@@ -95,8 +91,6 @@ services:
       WAREHOUSE_DB_URL: jdbc:postgresql://warehouse-db:5432/logistics_warehouse
       WAREHOUSE_DB_USER: logistics
       WAREHOUSE_DB_PASSWORD: logistics_dev
-    ports:
-      - "8084:8084"
     depends_on:
       warehouse-db:
         condition: service_healthy
@@ -112,8 +106,6 @@ services:
       ORDER_DB_PASSWORD: logistics_dev
       WAREHOUSE_GRPC_HOST: warehouse-service
       DRIVER_GRPC_HOST: driver-service
-    ports:
-      - "8082:8082"
     depends_on:
       order-db:
         condition: service_healthy
@@ -132,6 +124,7 @@ services:
       ORDER_SERVICE_URL: http://order-service:8082
       DRIVER_SERVICE_URL: http://driver-service:8083
       WAREHOUSE_SERVICE_URL: http://warehouse-service:8084
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-before-release}
     ports:
       - "8080:8080"
     depends_on:
