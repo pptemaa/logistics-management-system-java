@@ -36,7 +36,9 @@ class GatewayControllerTest {
                 "http://auth:8081", "http://orders:8082",
                 "http://drivers:8083", "http://warehouse:8084")).build();
         mvc.perform(post("/api/orders?source=test")
+                        .principal(() -> "7")
                         .header("Authorization", "Bearer token")
+                        .header("X-Authenticated-User", "999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"userId\":7}"))
                 .andExpect(status().isConflict())
@@ -50,5 +52,7 @@ class GatewayControllerTest {
                 request.getValue().uri().toString());
         org.junit.jupiter.api.Assertions.assertEquals("Bearer token",
                 request.getValue().headers().firstValue("Authorization").orElseThrow());
+        org.junit.jupiter.api.Assertions.assertEquals("7",
+                request.getValue().headers().firstValue("X-Authenticated-User").orElseThrow());
     }
 }

@@ -22,7 +22,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order create(CreateOrderRequest request) {
+    public Order create(long userId, CreateOrderRequest request) {
         List<Order.Item> items = request.items().stream()
                 .map(item -> {
                     ProductInfo product = warehouse.getProduct(item.productId());
@@ -38,7 +38,7 @@ public class OrderService {
                 .toList();
         BigDecimal total = items.stream().map(Order.Item::lineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long id = orders.insertOrder(request.userId(), request.deliveryAddress().trim(), total);
+        long id = orders.insertOrder(userId, request.deliveryAddress().trim(), total);
         items.forEach(item -> orders.insertItem(id, item));
         return orders.findById(id).orElseThrow();
     }

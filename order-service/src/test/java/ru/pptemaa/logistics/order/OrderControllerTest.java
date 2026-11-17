@@ -47,14 +47,16 @@ class OrderControllerTest {
 
     @Test
     void createsOrderAndCalculatesTotal() throws Exception {
-        String created = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+        String created = mvc.perform(post("/api/orders").header("X-Authenticated-User", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"userId":7,"deliveryAddress":"Moscow, Lenina 1","items":[
+                                {"userId":999,"deliveryAddress":"Moscow, Lenina 1","items":[
                                   {"productId":10,"quantity":2},
                                   {"productId":11,"quantity":3}
                                 ]}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").value(7))
                 .andExpect(jsonPath("$.status").value("pending"))
                 .andExpect(jsonPath("$.totalAmount").value(261.00))
                 .andExpect(jsonPath("$.items[0].lineTotal").value(201.00))
@@ -68,21 +70,30 @@ class OrderControllerTest {
 
     @Test
     void rejectsInvalidOrderAndMissingId() throws Exception {
-        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/orders").header("X-Authenticated-User", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"userId":0,"deliveryAddress":"","items":[
+                                {"deliveryAddress":"","items":[
                                   {"productId":1,"quantity":0}
                                 ]}
                                 """))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/orders/99999")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"deliveryAddress":"Moscow","items":[
+                                  {"productId":10,"quantity":1}
+                                ]}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     void rejectsOrderWhenWarehouseHasInsufficientStock() throws Exception {
-        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/orders").header("X-Authenticated-User", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"userId":7,"deliveryAddress":"Moscow, Lenina 1","items":[
+                                {"deliveryAddress":"Moscow, Lenina 1","items":[
                                   {"productId":10,"quantity":11}
                                 ]}
                                 """))
@@ -91,9 +102,10 @@ class OrderControllerTest {
 
     @Test
     void followsDeliveryLifecycleAndRejectsSkippedSteps() throws Exception {
-        String created = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
+        String created = mvc.perform(post("/api/orders").header("X-Authenticated-User", "8")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"userId":8,"deliveryAddress":"Moscow, Tverskaya 1","items":[
+                                {"deliveryAddress":"Moscow, Tverskaya 1","items":[
                                   {"productId":12,"quantity":1}
                                 ]}
                                 """))

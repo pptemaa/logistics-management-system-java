@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record CreateOrderRequest(
-        @Positive long userId,
         @NotBlank String deliveryAddress,
         @NotEmpty List<@Valid Item> items
 ) {

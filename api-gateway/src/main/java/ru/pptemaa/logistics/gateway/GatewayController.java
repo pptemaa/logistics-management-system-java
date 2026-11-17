@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.Principal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -40,7 +41,8 @@ public class GatewayController {
     }
 
     @RequestMapping({"/api/auth/**", "/api/orders/**", "/api/drivers/**", "/api/stock/**"})
-    public ResponseEntity<byte[]> route(HttpServletRequest request) throws IOException {
+    public ResponseEntity<byte[]> route(HttpServletRequest request, Principal principal)
+            throws IOException {
         String path = request.getRequestURI();
         String base = path.startsWith("/api/auth/") ? authUrl
                 : path.startsWith("/api/orders/") || path.equals("/api/orders") ? orderUrl
@@ -57,6 +59,9 @@ public class GatewayController {
         if (request.getHeader(HttpHeaders.AUTHORIZATION) != null) {
             upstream.header(HttpHeaders.AUTHORIZATION,
                     request.getHeader(HttpHeaders.AUTHORIZATION));
+        }
+        if (path.equals("/api/orders") || path.startsWith("/api/orders/")) {
+            upstream.header("X-Authenticated-User", principal.getName());
         }
         try {
             HttpResponse<byte[]> response = client.send(upstream.build(),
